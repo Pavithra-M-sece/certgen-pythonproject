@@ -1,0 +1,267 @@
+{% extends 'certificates/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="text-center">Create New Certificate</h3>
+            </div>
+            <div class="card-body">
+                {% if messages %}
+                <div class="messages mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" id="certificate-form">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            {{ form.certificate_type|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.template_style|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            {{ form.recipient_name|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <!-- Course Completion Fields -->
+                    <div id="course_completion-fields" class="certificate-fields" style="display: none;">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Please provide details about the course completion.
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                {{ form.course_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                {{ form.hours_completed|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.start_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.completion_date|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Participation Fields -->
+                    <div id="participation-fields" class="certificate-fields" style="display: none;">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Please provide details about the event you participated in.
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                {{ form.event_name|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.completion_date|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Achievement Fields -->
+                    <div id="achievement-fields" class="certificate-fields" style="display: none;">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Please provide details about your achievement or recognition.
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                {{ form.achievement_title|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                {{ form.achievement_description|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                {{ form.completion_date|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            {{ form.signature|as_crispy_field }}
+                            <small class="form-text text-muted">Upload your signature as an image file (PNG, JPG)</small>
+                            <div id="signature-feedback" class="mt-2" style="display: none;">
+                                <i class="fas fa-check-circle text-success"></i> Signature file selected
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" id="submit-btn" class="btn btn-primary">
+                            <span class="normal-text">Generate Certificate</span>
+                            <span class="loading-text d-none">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                Generating...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const certificateType = document.querySelector('#id_certificate_type');
+    const allFields = document.querySelectorAll('.certificate-fields');
+    const form = document.querySelector('#certificate-form');
+    const signatureInput = document.querySelector('#id_signature');
+    const signatureFeedback = document.querySelector('#signature-feedback');
+    const submitBtn = document.querySelector('#submit-btn');
+    
+    function toggleFields() {
+        // Hide all fields first
+        allFields.forEach(field => field.style.display = 'none');
+        
+        // Show the selected type's fields
+        const selectedType = certificateType.value;
+        const targetField = document.querySelector(`#${selectedType}-fields`);
+        
+        if (targetField) {
+            targetField.style.display = 'block';
+            console.log(`Showing fields for: ${selectedType}`); // Debug log
+        } else {
+            console.log(`No fields found for: ${selectedType}`); // Debug log
+        }
+    }
+    
+    // Add change event listener
+    certificateType.addEventListener('change', function() {
+        console.log('Certificate type changed to:', this.value); // Debug log
+        toggleFields();
+    });
+    
+    // Initial toggle on page load
+    toggleFields();
+
+    signatureInput.addEventListener('change', function() {
+        signatureFeedback.style.display = this.files && this.files[0] ? 'block' : 'none';
+    });
+
+    form.addEventListener('submit', function(e) {
+        const selectedType = certificateType.value;
+        let isValid = true;
+        let errorMessage = '';
+
+        // Basic validation
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            return false;
+        }
+
+        // Check signature
+        if (!signatureInput.files || !signatureInput.files[0]) {
+            errorMessage = 'Please select a signature file before submitting.';
+            isValid = false;
+        }
+
+        // Type-specific validation
+        switch (selectedType) {
+            case 'achievement':
+                const title = document.querySelector('#id_achievement_title').value;
+                const description = document.querySelector('#id_achievement_description').value;
+                if (!title || !description) {
+                    errorMessage = 'Please fill in both the achievement title and description.';
+                    isValid = false;
+                }
+                break;
+            case 'participation':
+                const eventName = document.querySelector('#id_event_name').value;
+                if (!eventName) {
+                    errorMessage = 'Please enter the event name.';
+                    isValid = false;
+                }
+                break;
+            case 'course_completion':
+                const courseName = document.querySelector('#id_course_name').value;
+                if (!courseName) {
+                    errorMessage = 'Please enter the course name.';
+                    isValid = false;
+                }
+                break;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            alert(errorMessage);
+            return false;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.querySelector('.normal-text').classList.add('d-none');
+        submitBtn.querySelector('.loading-text').classList.remove('d-none');
+
+        // Allow form submission
+        return true;
+    });
+});
+</script>
+
+<style>
+.certificate-fields {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.alert-info {
+    background-color: #e8f4f8;
+    border-color: #b8e7f3;
+    color: #0c5460;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.loading-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#submit-btn:disabled {
+    cursor: not-allowed;
+}
+
+.alert {
+    margin-bottom: 1rem;
+}
+
+.messages {
+    margin-bottom: 1.5rem;
+}
+</style>
+{% endblock %} 

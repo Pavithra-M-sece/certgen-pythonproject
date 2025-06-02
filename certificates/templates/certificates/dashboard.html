@@ -1,0 +1,140 @@
+{% extends 'certificates/base.html' %}
+
+{% block content %}
+<div class="container">
+    {% if messages %}
+    <div class="messages mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <h2 class="display-4">Welcome, {{ user.username }}!</h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 certificate-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-circle fa-3x mb-3 text-primary"></i>
+                    <h5 class="card-title">View Profile</h5>
+                    <p class="card-text">Update your personal information and settings</p>
+                    <a href="{% url 'profile' %}" class="btn btn-primary">Go to Profile</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 certificate-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-certificate fa-3x mb-3 text-success"></i>
+                    <h5 class="card-title">View Certificates</h5>
+                    <p class="card-text">Access all your generated certificates</p>
+                    <a href="{% url 'view_certificates' %}" class="btn btn-success">View Certificates</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 certificate-card">
+                <div class="card-body text-center">
+                    <i class="fas fa-plus-circle fa-3x mb-3 text-info"></i>
+                    <h5 class="card-title">Create Certificate</h5>
+                    <p class="card-text">Generate a new certificate with custom details</p>
+                    <a href="{% url 'create_certificate' %}" class="btn btn-info text-white">Create New</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if certificates %}
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h3 class="mb-0">Recent Certificates</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Certificate Type</th>
+                                    <th>Recipient</th>
+                                    <th>Details</th>
+                                    <th>Created Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cert in certificates|slice:":5" %}
+                                <tr>
+                                    <td>{{ cert.certificate_type|title }}</td>
+                                    <td>{{ cert.recipient_name }}</td>
+                                    <td>
+                                        {% if cert.certificate_type == 'course_completion' %}
+                                            {{ cert.course_name }}
+                                        {% elif cert.certificate_type == 'participation' %}
+                                            {{ cert.event_name }}
+                                        {% elif cert.certificate_type == 'achievement' %}
+                                            {{ cert.achievement_title }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ cert.created_at|date:"F d, Y" }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'view_certificate' cert.id %}" class="btn btn-sm btn-info" target="_blank">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                            <a href="{% url 'download_certificate' cert.id %}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if certificates.count > 5 %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'view_certificates' %}" class="btn btn-outline-primary">View All Certificates</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.certificate-card {
+    transition: transform 0.2s;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.certificate-card:hover {
+    transform: translateY(-5px);
+}
+.btn-group .btn {
+    margin-right: 2px;
+}
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,0.125);
+}
+.table td {
+    vertical-align: middle;
+}
+</style>
+{% endblock %} 
